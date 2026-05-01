@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ScheduleIQ — P6 Schedule Intelligence</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+3:wght@300;400;600&family=Source+Code+Pro:wght@500&display=swap" rel="stylesheet"/>
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #F4F1EB;
+    --surface: #FFFFFF;
+    --surface-alt: #F9F7F2;
+    --border: #DDD8CC;
+    --accent: #C8571B;
+    --accent-dim: #E8835A;
+    --accent-bg: #FDF0EA;
+    --navy: #1A2B45;
+    --navy-dim: #2E4268;
+    --text: #1C1C1C;
+    --text-mid: #4A4A4A;
+    --text-light: #7A7A7A;
+    --ok: #2D7A4F;
+    --ok-bg: #EAF5EE;
+    --ok-border: #B8DCCA;
+    --warn: #A06B00;
+    --warn-bg: #FEF8E7;
+    --warn-border: #E8C96A;
+    --err: #B8290A;
+    --err-bg: #FDECEA;
+    --err-border: #EAA09A;
+    --info: #1A5FA8;
+    --info-bg: #EAF1FB;
+    --info-border: #A8C8EA;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(circle at 15% 15%, rgba(200,87,27,0.07) 0%, transparent 45%),
+      radial-gradient(circle at 85% 85%, rgba(26,43,69,0.06) 0%, transparent 45%);
+  }
+
+  /* ── Header ── */
+  .header {
+    background: var(--navy);
+    padding: 0 32px;
+    height: 62px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 3px solid var(--accent);
+    position: sticky; top: 0; z-index: 200;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+  }
+  .header-brand { display: flex; align-items: center; gap: 12px; }
+  .header-logo {
+    width: 34px; height: 34px; background: var(--accent); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Playfair Display', serif; color: #fff; font-size: 17px; font-weight: 700;
+  }
+  .header-title { font-family: 'Playfair Display', serif; color: #fff; font-size: 19px; letter-spacing: 0.02em; }
+  .header-sub { color: rgba(255,255,255,0.4); font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; }
+  .header-badge {
+    background: rgba(200,87,27,0.18); border: 1px solid rgba(200,87,27,0.4);
+    color: var(--accent-dim); font-size: 11px; padding: 4px 12px;
+    border-radius: 20px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600;
+  }
+
+  /* ── Main ── */
+  .main { max-width: 1040px; margin: 0 auto; padding: 36px 20px 60px; }
+
+  /* ── Hero ── */
+  .hero { text-align: center; margin-bottom: 40px; }
+  .hero h1 { font-family: 'Playfair Display', serif; font-size: 34px; color: var(--navy); line-height: 1.2; margin-bottom: 10px; }
+  .hero h1 span { color: var(--accent); }
+  .hero p { color: var(--text-mid); font-size: 16px; font-weight: 300; max-width: 520px; margin: 0 auto; }
+
+  /* ── API Key Setup ── */
+  .api-setup {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 28px 32px; margin-bottom: 28px;
+    border-left: 4px solid var(--accent);
+  }
+  .api-setup h3 { font-family: 'Playfair Display', serif; font-size: 17px; color: var(--navy); margin-bottom: 6px; }
+  .api-setup p { font-size: 13px; color: var(--text-light); margin-bottom: 16px; line-height: 1.6; }
+  .api-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .api-input {
+    flex: 1; min-width: 220px; padding: 10px 14px; border: 1px solid var(--border);
+    border-radius: 8px; font-family: 'Source Code Pro', monospace; font-size: 13px;
+    background: var(--surface-alt); color: var(--text); outline: none;
+    transition: border-color 0.15s;
+  }
+  .api-input:focus { border-color: var(--accent); }
+  .api-input.saved { border-color: var(--ok); background: var(--ok-bg); }
+  .btn-save-key {
+    padding: 10px 20px; border-radius: 8px; border: none;
+    background: var(--navy); color: #fff; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: background 0.15s; white-space: nowrap;
+  }
+  .btn-save-key:hover { background: var(--navy-dim); }
+  .key-status { font-size: 12px; margin-top: 8px; color: var(--text-light); }
+  .key-status.ok { color: var(--ok); }
+  .model-select-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  .model-select-row label { font-size: 12px; font-weight: 600; color: var(--text-mid); text-transform: uppercase; letter-spacing: 0.07em; white-space: nowrap; }
+  .model-select {
+    padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--surface-alt); font-size: 13px; color: var(--text);
+    font-family: 'Source Sans 3', sans-serif; outline: none; flex: 1; min-width: 200px;
+  }
+
+  /* ── Instructions ── */
+  .inst-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 32px; }
+  .inst-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px 20px; }
+  .inst-num { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 700; color: var(--border); line-height: 1; margin-bottom: 10px; }
+  .inst-title { font-weight: 600; color: var(--navy); margin-bottom: 6px; font-size: 14px; }
+  .inst-desc { font-size: 12px; color: var(--text-light); line-height: 1.6; }
+
+  /* ── Upload Zone ── */
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: 14px; padding: 44px 28px;
+    text-align: center; background: var(--surface); cursor: pointer;
+    transition: all 0.2s ease; margin-bottom: 24px;
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: var(--accent-bg); }
+  .upload-zone.has-file { border-style: solid; border-color: var(--ok); background: var(--ok-bg); }
+  .upload-icon { font-size: 44px; margin-bottom: 14px; }
+  .upload-title { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--navy); margin-bottom: 6px; }
+  .upload-hint { color: var(--text-light); font-size: 13px; }
+  .upload-fmts { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+  .fmt-tag {
+    background: var(--navy-dim); color: #fff; font-size: 10px; padding: 3px 9px;
+    border-radius: 20px; font-family: 'Source Code Pro', monospace; letter-spacing: 0.04em;
+  }
+  .file-name { color: var(--ok); font-weight: 600; font-size: 14px; margin-top: 10px; }
+
+  /* ── Config Panel ── */
+  .config-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px 28px; margin-bottom: 24px; }
+  .config-title { font-family: 'Playfair Display', serif; font-size: 17px; color: var(--navy); margin-bottom: 18px; }
+  .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .cf label { display: block; font-size: 11px; font-weight: 600; color: var(--text-mid); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 7px; }
+  .cf select, .cf input {
+    width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--surface-alt); font-family: 'Source Sans 3', sans-serif;
+    font-size: 13px; color: var(--text); outline: none; transition: border-color 0.15s;
+  }
+  .cf select:focus, .cf input:focus { border-color: var(--accent); }
+
+  /* ── Analyze Button ── */
+  .btn-analyze {
+    width: 100%; padding: 17px; border: none; border-radius: 12px;
+    background: var(--navy); color: #fff; font-family: 'Source Sans 3', sans-serif;
+    font-size: 16px; font-weight: 600; cursor: pointer; letter-spacing: 0.03em;
+    transition: all 0.2s; margin-bottom: 36px;
+    border-bottom: 4px solid var(--accent);
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .btn-analyze:hover:not(:disabled) { background: var(--navy-dim); transform: translateY(-1px); }
+  .btn-analyze:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* ── Progress ── */
+  .progress-wrap { margin-bottom: 28px; }
+  .prog-bar-bg { background: var(--border); border-radius: 4px; height: 5px; overflow: hidden; margin-bottom: 14px; }
+  .prog-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-dim)); border-radius: 4px; transition: width 0.4s ease; }
+  .steps-list { display: flex; flex-direction: column; gap: 7px; }
+  .step-row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-light); }
+  .step-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); flex-shrink: 0; transition: all 0.3s; }
+  .step-dot.active { background: var(--accent); box-shadow: 0 0 0 3px rgba(200,87,27,0.2); }
+  .step-dot.done { background: var(--ok); }
+  .step-row.active { color: var(--text); font-weight: 600; }
+
+  /* ── Results ── */
+  .results-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 24px; padding-bottom: 18px; border-bottom: 2px solid var(--border);
+    gap: 16px; flex-wrap: wrap;
+  }
+  .results-title { font-family: 'Playfair Display', serif; font-size: 26px; color: var(--navy); }
+  .results-meta { color: var(--text-light); font-size: 13px; margin-top: 4px; }
+  .score-badge {
+    text-align: center; padding: 12px 22px; border-radius: 12px; border: 2px solid; flex-shrink: 0;
+  }
+  .score-num { font-family: 'Playfair Display', serif; font-size: 34px; font-weight: 700; line-height: 1; }
+  .score-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; margin-top: 2px; }
+
+  /* ── KPI Strip ── */
+  .kpi-strip { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 28px; }
+  .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; border-top: 3px solid transparent; }
+  .kpi-val { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; margin-bottom: 3px; }
+  .kpi-label { font-size: 11px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 24px; overflow-x: auto; }
+  .tab {
+    padding: 11px 22px; cursor: pointer; font-size: 13px; font-weight: 600;
+    color: var(--text-light); border-bottom: 2px solid transparent; margin-bottom: -2px;
+    transition: all 0.15s; white-space: nowrap; letter-spacing: 0.02em;
+  }
+  .tab:hover { color: var(--navy); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── Findings ── */
+  .findings-list { display: flex; flex-direction: column; gap: 10px; }
+  .finding { border-radius: 10px; padding: 14px 16px; border: 1px solid transparent; display: flex; gap: 12px; align-items: flex-start; }
+  .finding.ok    { background: var(--ok-bg);   border-color: var(--ok-border); }
+  .finding.warn  { background: var(--warn-bg);  border-color: var(--warn-border); }
+  .finding.err   { background: var(--err-bg);   border-color: var(--err-border); }
+  .finding.info  { background: var(--info-bg);  border-color: var(--info-border); }
+  .finding-icon { font-size: 17px; flex-shrink: 0; margin-top: 1px; }
+  .finding-title { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+  .finding.ok   .finding-title { color: var(--ok); }
+  .finding.warn .finding-title { color: var(--warn); }
+  .finding.err  .finding-title { color: var(--err); }
+  .finding.info .finding-title { color: var(--info); }
+  .finding-desc { font-size: 12px; color: var(--text-mid); line-height: 1.55; }
+
+  /* ── Narrative ── */
+  .section-head { font-family: 'Playfair Display', serif; font-size: 19px; color: var(--navy); margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .narrative-box {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 28px; font-size: 13.5px; line-height: 1.8; color: var(--text-mid);
+    white-space: pre-wrap; border-left: 4px solid var(--navy);
+    font-family: 'Source Sans 3', sans-serif;
+  }
+
+  /* ── Activity Table ── */
+  .table-wrap { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; overflow-x: auto; }
+  .act-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .act-table th { background: var(--navy); color: #fff; padding: 9px 13px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600; white-space: nowrap; }
+  .act-table td { padding: 9px 13px; border-bottom: 1px solid var(--border); color: var(--text-mid); white-space: nowrap; }
+  .act-table tr:last-child td { border-bottom: none; }
+  .act-table tr:hover td { background: var(--surface-alt); }
+  .tag { display: inline-block; padding: 2px 7px; border-radius: 20px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; }
+  .tag-crit { background: var(--err-bg); color: var(--err); }
+  .tag-near { background: var(--warn-bg); color: var(--warn); }
+  .tag-ok   { background: var(--ok-bg);  color: var(--ok); }
+
+  /* ── Buttons ── */
+  .btn-sm {
+    padding: 7px 16px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface-alt); font-size: 12px; font-weight: 600;
+    cursor: pointer; color: var(--navy); transition: all 0.15s; font-family: 'Source Sans 3', sans-serif;
+  }
+  .btn-sm:hover { background: var(--surface); border-color: var(--navy); }
+  .btn-sm.accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-sm.accent:hover { background: #a8461a; }
+
+  /* ── Error / Notice ── */
+  .notice { border-radius: 10px; padding: 14px 16px; border: 1px solid; display: flex; gap: 12px; margin-bottom: 20px; }
+  .notice.err  { background: var(--err-bg);  border-color: var(--err-border); }
+  .notice.warn { background: var(--warn-bg); border-color: var(--warn-border); }
+  .notice.ok   { background: var(--ok-bg);   border-color: var(--ok-border); }
+  .notice-text { font-size: 13px; color: var(--text-mid); line-height: 1.5; }
+  .notice-text strong { display: block; margin-bottom: 3px; }
+
+  /* ── Reset link ── */
+  .reset-row { text-align: center; margin-top: 36px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 680px) {
+    .inst-grid { grid-template-columns: 1fr; }
+    .config-grid { grid-template-columns: 1fr; }
+    .kpi-strip { grid-template-columns: repeat(2,1fr); }
+    .hero h1 { font-size: 26px; }
+    .main { padding: 24px 14px 48px; }
+    .header { padding: 0 16px; }
+    .header-badge { display: none; }
+    .api-setup { padding: 20px; }
+    .config-panel { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-brand">
+    <div class="header-logo">P</div>
+    <div>
+      <div class="header-title">ScheduleIQ</div>
+      <div class="header-sub">P6 Schedule Intelligence</div>
+    </div>
+  </div>
+  <div class="header-badge">AI-Powered Audit</div>
+</header>
+
+<main class="main">
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>Primavera P6<br/><span>Schedule Audit</span> & Narrative</h1>
+    <p>Upload your P6 Excel export. Get an instant QA audit and a professional planning narrative — ready for client submission.</p>
+  </div>
+
+  <!-- API Key Panel -->
+  <div class="api-setup" id="apiSetupPanel">
+    <h3>🔑 OpenRouter API Key</h3>
+    <p>Enter your OpenRouter key below. It is saved only in this browser session — never transmitted except directly to api.openrouter.ai. Get a key at <strong>openrouter.ai</strong> and set a $3 usage cap in your account settings.</p>
+    <div class="api-row">
+      <input class="api-input" type="password" id="apiKeyInput" placeholder="sk-or-v1-..." autocomplete="off"/>
+      <button class="btn-save-key" onclick="saveKey()">Save Key</button>
+    </div>
+    <div class="key-status" id="keyStatus">No key saved yet.</div>
+    <div class="model-select-row">
+      <label>Model</label>
+      <select class="model-select" id="modelSelect">
+        <option value="anthropic/claude-3-5-haiku">Claude 3.5 Haiku — fast, economical ✓ recommended</option>
+        <option value="anthropic/claude-3-5-sonnet">Claude 3.5 Sonnet — higher quality, costs more</option>
+        <option value="google/gemini-flash-1.5">Gemini 1.5 Flash — very cheap alternative</option>
+        <option value="meta-llama/llama-3.1-8b-instruct:free">Llama 3.1 8B — free tier (lower quality)</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Upload + Config: shown in idle state -->
+  <div id="inputSection">
+
+    <!-- Step instructions -->
+    <div class="inst-grid" id="instGrid">
+      <div class="inst-card">
+        <div class="inst-num">01</div>
+        <div class="inst-title">Export from Primavera P6</div>
+        <div class="inst-desc">In P6: <em>File → Export → Spreadsheet (XLS/XLSX)</em>. Include columns: Activity ID, Name, Duration, Predecessors, Successors, Total Float, Constraint Type, % Complete.</div>
+      </div>
+      <div class="inst-card">
+        <div class="inst-num">02</div>
+        <div class="inst-title">Upload & Configure</div>
+        <div class="inst-desc">Drop your Excel or CSV below. Select your project type so the AI applies oil &amp; gas-specific standards to its assessment.</div>
+      </div>
+      <div class="inst-card">
+        <div class="inst-num">03</div>
+        <div class="inst-title">Get Your Report</div>
+        <div class="inst-desc">Instant DCMA 14-Point checks run locally. AI then generates a scored audit narrative ready for your planning submission.</div>
+      </div>
+    </div>
+
+    <!-- Upload Zone -->
+    <div class="upload-zone" id="uploadZone"
+         onclick="document.getElementById('fileInput').click()"
+         ondragover="onDragOver(event)"
+         ondragleave="onDragLeave()"
+         ondrop="onDrop(event)">
+      <div class="upload-icon" id="uploadIcon">📁</div>
+      <div class="upload-title" id="uploadTitle">Drop your P6 export here</div>
+      <div class="upload-hint" id="uploadHint">or tap to browse</div>
+      <div class="upload-fmts">
+        <span class="fmt-tag">.xlsx</span>
+        <span class="fmt-tag">.xls</span>
+        <span class="fmt-tag">.csv</span>
+      </div>
+      <div class="file-name" id="fileName"></div>
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="onFileSelect(event)"/>
+    </div>
+
+    <!-- Config -->
+    <div class="config-panel">
+      <div class="config-title">Project Configuration</div>
+      <div class="config-grid">
+        <div class="cf">
+          <label>Project Type</label>
+          <select id="projectType">
+            <option value="oil-gas-epc">Oil &amp; Gas — EPC / EPCM</option>
+            <option value="oil-gas-upstream">Oil &amp; Gas — Upstream / Drilling</option>
+            <option value="oil-gas-pipeline">Oil &amp; Gas — Pipeline &amp; Facilities</option>
+            <option value="oil-gas-refinery">Oil &amp; Gas — Refinery / Turnaround</option>
+            <option value="construction">General Construction</option>
+          </select>
+        </div>
+        <div class="cf">
+          <label>Project Name (optional)</label>
+          <input type="text" id="projectName" placeholder="e.g. Gas Compression Station Ph2"/>
+        </div>
+        <div class="cf">
+          <label>Data Date</label>
+          <input type="date" id="dataDate"/>
+        </div>
+        <div class="cf">
+          <label>Check Standard</label>
+          <select id="checkStd">
+            <option value="dcma">DCMA 14-Point Assessment</option>
+            <option value="aace">AACE Schedule Assessment</option>
+            <option value="internal">Company Internal (generic)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress (hidden initially) -->
+    <div class="progress-wrap" id="progressWrap" style="display:none">
+      <div class="prog-bar-bg"><div class="prog-bar" id="progBar" style="width:0%"></div></div>
+      <div class="steps-list" id="stepsList"></div>
+    </div>
+
+    <!-- Error notice -->
+    <div class="notice err" id="errorNotice" style="display:none">
+      <span>⚠️</span>
+      <div class="notice-text"><strong>Error</strong><span id="errorMsg"></span></div>
+    </div>
+
+    <!-- Analyze Button -->
+    <button class="btn-analyze" id="analyzeBtn" onclick="runAnalysis()" disabled>
+      ⚡ Run Schedule Intelligence Audit
+    </button>
+  </div>
+
+  <!-- Results Section (hidden initially) -->
+  <div id="resultsSection" style="display:none"></div>
+
+</main>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+let state = {
+  file: null,
+  rawData: null,
+  apiKey: '',
+  phase: 'idle', // idle | parsing | analyzing | done | error
+};
+
+// ─── API Key ──────────────────────────────────────────────────────────────────
+function saveKey() {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  if (!val.startsWith('sk-or')) {
+    setKeyStatus('⚠ Key should start with sk-or-... Check your OpenRouter dashboard.', false);
+    return;
+  }
+  state.apiKey = val;
+  setKeyStatus('✓ Key saved for this session. Not stored on disk.', true);
+  updateAnalyzeBtn();
+}
+
+function setKeyStatus(msg, ok) {
+  const el = document.getElementById('keyStatus');
+  el.textContent = msg;
+  el.className = 'key-status' + (ok ? ' ok' : '');
+}
+
+// ─── File Handling ────────────────────────────────────────────────────────────
+function onDragOver(e) { e.preventDefault(); document.getElementById('uploadZone').classList.add('drag'); }
+function onDragLeave()  { document.getElementById('uploadZone').classList.remove('drag'); }
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) setFile(f);
+}
+function onFileSelect(e) {
+  const f = e.target.files[0];
+  if (f) setFile(f);
+}
+
+function setFile(f) {
+  const allowed = ['xlsx','xls','csv'];
+  const ext = f.name.split('.').pop().toLowerCase();
+  if (!allowed.includes(ext)) {
+    showError('Unsupported file type. Please use .xlsx, .xls, or .csv.');
+    return;
+  }
+  state.file = f;
+  hideError();
+  const zone = document.getElementById('uploadZone');
+  zone.classList.add('has-file');
+  document.getElementById('uploadIcon').textContent = '📊';
+  document.getElementById('uploadTitle').textContent = 'Schedule Loaded';
+  document.getElementById('uploadHint').textContent = '';
+  document.getElementById('fileName').textContent = '✓ ' + f.name + ' (' + (f.size/1024).toFixed(1) + ' KB)';
+  updateAnalyzeBtn();
+}
+
+function updateAnalyzeBtn() {
+  const btn = document.getElementById('analyzeBtn');
+  btn.disabled = !(state.file && state.apiKey);
+  if (!state.apiKey && state.file) btn.title = 'Enter your OpenRouter API key first';
+  else if (!state.file && state.apiKey) btn.title = 'Upload a schedule file first';
+  else btn.title = '';
+}
+
+// ─── Column Aliases ───────────────────────────────────────────────────────────
+const COL_MAP = {
+  id:         ['activity id','task id','act id','id'],
+  name:       ['activity name','task name','name','description','activity description'],
+  duration:   ['original duration','duration','orig dur','planned duration','dur','budgeted duration'],
+  remaining:  ['remaining duration','remaining dur','rem dur','remaining'],
+  start:      ['start','planned start','early start','es','start date','scheduled start'],
+  finish:     ['finish','planned finish','early finish','ef','finish date','scheduled finish'],
+  pred:       ['predecessors','predecessor','pred','dependencies','depends on','predecessor activities'],
+  succ:       ['successors','successor','succ','successor activities'],
+  float:      ['total float','float','total float (days)','tf','total float days'],
+  constraint: ['constraint type','constraint','constraint types'],
+  wbs:        ['wbs','wbs code','wbs name','wbs path'],
+  pct:        ['% complete','percent complete','pct complete','% comp','complete','physical % complete'],
+  resource:   ['resource name','resource','resources','assigned resources','primary resource'],
+  status:     ['status','activity status','task status'],
+};
+
+function findColIdx(headers, key) {
+  const aliases = COL_MAP[key] || [];
+  for (const alias of aliases) {
+    const idx = headers.findIndex(h => h?.toString().toLowerCase().trim() === alias);
+    if (idx >= 0) return idx;
+  }
+  return -1;
+}
+
+// ─── Parse Schedule ───────────────────────────────────────────────────────────
+function parseSchedule(data) {
+  if (!data || data.length < 2) return null;
+  const headers = data[0].map(h => h?.toString().trim());
+  const rows = data.slice(1).filter(r => r.some(c => c !== null && c !== undefined && c !== ''));
+
+  const col = {};
+  for (const key of Object.keys(COL_MAP)) col[key] = findColIdx(headers, key);
+
+  const activities = rows.map((r, i) => ({
+    id:         col.id >= 0 ? (r[col.id]?.toString().trim() || `A${String(i+1).padStart(3,'0')}`) : `A${String(i+1).padStart(3,'0')}`,
+    name:       col.name >= 0 ? (r[col.name]?.toString().trim() || '') : '',
+    duration:   col.duration >= 0 ? (parseFloat(r[col.duration]) || 0) : 0,
+    remaining:  col.remaining >= 0 ? parseFloat(r[col.remaining]) : null,
+    start:      col.start >= 0 ? (r[col.start]?.toString() || '') : '',
+    finish:     col.finish >= 0 ? (r[col.finish]?.toString() || '') : '',
+    pred:       col.pred >= 0 ? (r[col.pred]?.toString().trim() || '') : '',
+    succ:       col.succ >= 0 ? (r[col.succ]?.toString().trim() || '') : '',
+    float:      col.float >= 0 ? parseFloat(r[col.float]) : null,
+    constraint: col.constraint >= 0 ? (r[col.constraint]?.toString().trim() || '') : '',
+    wbs:        col.wbs >= 0 ? (r[col.wbs]?.toString().trim() || '') : '',
+    pct:        col.pct >= 0 ? parseFloat(r[col.pct]) : null,
+    resource:   col.resource >= 0 ? (r[col.resource]?.toString().trim() || '') : '',
+    status:     col.status >= 0 ? (r[col.status]?.toString().trim() || '') : '',
+  })).filter(a => a.id || a.name);
+
+  return { activities, headers, colMap: col };
+}
+
+// ─── Local DCMA Checks ────────────────────────────────────────────────────────
+function runChecks(acts) {
+  const findings = [];
+  const n = acts.length;
+  if (n === 0) return findings;
+
+  const isMilestone = a => {
+    const nm = (a.name || '').toLowerCase();
+    return a.duration === 0 || nm.includes('milestone') || nm.includes('mob') ||
+           nm.includes('start') || nm.includes('complete') || nm.includes('finish') || nm.includes('handover');
+  };
+
+  // 1. Open starts
+  const noPred = acts.filter(a => !a.pred);
+  if (noPred.length > 2) {
+    findings.push({ type:'err', code:'OPEN_START',
+      title: `${noPred.length} activities have no predecessors`,
+      desc: `DCMA expects ≤1 open start (the project start milestone). Activities without predecessors can free-float and distort CPM. Sample: ${noPred.slice(0,4).map(a=>a.id).join(', ')}${noPred.length>4?' …':''}`
+    });
+  } else {
+    findings.push({ type:'ok', code:'OPEN_START', title:`Open starts within tolerance (${noPred.length})`, desc:'Predecessor logic appears complete.' });
+  }
+
+  // 2. Open finishes
+  const noSucc = acts.filter(a => !a.succ);
+  if (noSucc.length > 2) {
+    findings.push({ type:'warn', code:'OPEN_FINISH',
+      title: `${noSucc.length} activities have no successors`,
+      desc: `All activities except the project completion milestone should have at least one successor. Dangling ends can hide logic omissions. Sample: ${noSucc.slice(0,4).map(a=>a.id).join(', ')}`
+    });
+  } else {
+    findings.push({ type:'ok', code:'OPEN_FINISH', title:`Open finishes within tolerance (${noSucc.length})`, desc:'Successor logic appears adequate.' });
+  }
+
+  // 3. Zero-duration non-milestones
+  const zeroDur = acts.filter(a => a.duration === 0 && !isMilestone(a));
+  if (zeroDur.length > 0) {
+    findings.push({ type:'warn', code:'ZERO_DUR',
+      title: `${zeroDur.length} non-milestone activities with zero duration`,
+      desc: `Zero-duration activities that are not formal milestones suggest placeholder tasks or data entry errors. Review: ${zeroDur.slice(0,3).map(a=>a.name||a.id).join(', ')}`
+    });
+  }
+
+  // 4. Critical path
+  const hasFloat = acts.some(a => a.float !== null && !isNaN(a.float));
+  if (hasFloat) {
+    const crit = acts.filter(a => a.float !== null && a.float <= 0);
+    const near = acts.filter(a => a.float !== null && a.float > 0 && a.float <= 5);
+    const pct = Math.round(crit.length / n * 100);
+    findings.push({
+      type: pct > 50 ? 'warn' : 'info', code:'CRITICAL',
+      title: `Critical path: ${crit.length} activities (${pct}% of schedule)`,
+      desc: `${near.length} near-critical activities (float 1–5 days). ${pct > 50 ? 'WARNING: >50% critical suggests insufficient schedule buffer. Oil & gas industry norm is 15–30% critical density.' : 'Critical path density appears within normal range.'}`
+    });
+  } else {
+    findings.push({ type:'warn', code:'CRITICAL', title:'Total Float column not detected', desc:'Cannot assess critical path. Ensure "Total Float" is included in your P6 export.' });
+  }
+
+  // 5. Hard constraints
+  const constrained = acts.filter(a => a.constraint && !['','none','as soon as possible','asap'].includes(a.constraint.toLowerCase()));
+  if (constrained.length > n * 0.1) {
+    findings.push({ type:'warn', code:'CONSTRAINTS',
+      title: `High constraint density: ${constrained.length} activities (${Math.round(constrained.length/n*100)}%) hard-constrained`,
+      desc: 'Overuse of date constraints prevents CPM from computing realistic dates and masks schedule risk. Best practice: constrain only contractual milestones.'
+    });
+  } else {
+    findings.push({ type:'ok', code:'CONSTRAINTS', title:`Constraint usage acceptable (${constrained.length} constrained)`, desc:'Hard date constraints appear limited to key milestones.' });
+  }
+
+  // 6. Resource loading
+  const unresourced = acts.filter(a => !a.resource && a.duration > 0);
+  const unrPct = Math.round(unresourced.length / n * 100);
+  if (unresourced.length > n * 0.3) {
+    findings.push({ type:'warn', code:'RESOURCES',
+      title: `${unresourced.length} activities (${unrPct}%) have no resource assigned`,
+      desc: 'Unresourced activities prevent resource histograms, EVM cost loading, and levelling. For oil & gas EPC, resource loading is typically required by the client.'
+    });
+  } else if (unresourced.length > 0) {
+    findings.push({ type:'info', code:'RESOURCES', title:`${unresourced.length} unresourced activities (${unrPct}%)`, desc:'Partial resource loading detected. Verify resource column was included in export.' });
+  }
+
+  // 7. Long durations (DCMA: >44 working days)
+  const longActs = acts.filter(a => a.duration > 60 && !isMilestone(a));
+  if (longActs.length > 0) {
+    findings.push({ type:'info', code:'LONG_ACTS',
+      title: `${longActs.length} activities exceed 60 calendar days`,
+      desc: `DCMA guideline: activity durations ≤44 working days. Very long activities reduce schedule granularity and make earned value measurement difficult. Consider decomposing: ${longActs.slice(0,3).map(a=>a.name||a.id).join(', ')}`
+    });
+  }
+
+  // 8. Activity naming
+  const badName = acts.filter(a => !a.name || a.name.length < 4);
+  if (badName.length > 0) {
+    findings.push({ type:'warn', code:'NAMING',
+      title: `${badName.length} activities with missing or inadequate names`,
+      desc: 'Activity names should follow verb-noun format (e.g. "Install Wellhead Assembly") for clarity in reports, lookaheads, and stakeholder reviews.'
+    });
+  }
+
+  // 9. % Complete vs remaining mismatch
+  const mismatch = acts.filter(a =>
+    a.pct !== null && !isNaN(a.pct) && a.remaining !== null && !isNaN(a.remaining) && a.duration > 0 &&
+    Math.abs((1 - a.remaining / a.duration) * 100 - a.pct) > 15
+  );
+  if (mismatch.length > 0) {
+    findings.push({ type:'err', code:'PCT_MISMATCH',
+      title: `${mismatch.length} activities: % complete inconsistent with remaining duration`,
+      desc: '% complete and remaining duration are giving conflicting progress signals. This corrupts EVM calculations and earned value reporting. Requires immediate correction.'
+    });
+  }
+
+  return findings;
+}
+
+function scoreFindings(findings) {
+  let s = 100;
+  findings.forEach(f => { if(f.type==='err') s-=14; else if(f.type==='warn') s-=6; else if(f.type==='info') s-=2; });
+  return Math.max(0, Math.min(100, s));
+}
+
+// ─── Progress UI ──────────────────────────────────────────────────────────────
+const STEPS = [
+  'Reading schedule file',
+  'Running DCMA 14-Point checks',
+  'Analysing critical path & logic',
+  'Generating AI planning narrative',
+  'Compiling final report',
+];
+
+let currentStep = 0;
+let currentPct  = 0;
+
+function initProgress() {
+  currentStep = 0; currentPct = 0;
+  document.getElementById('progressWrap').style.display = 'block';
+  const sl = document.getElementById('stepsList');
+  sl.innerHTML = STEPS.map((s,i) =>
+    `<div class="step-row" id="step${i}"><div class="step-dot" id="dot${i}"></div><span id="slabel${i}">${s}</span></div>`
+  ).join('');
+  setProgress(0, 0);
+}
+
+function setProgress(step, pct) {
+  currentStep = step; currentPct = pct;
+  document.getElementById('progBar').style.width = pct + '%';
+  STEPS.forEach((_,i) => {
+    const dot = document.getElementById('dot'+i);
+    const row = document.getElementById('step'+i);
+    if (i < step) { dot.className='step-dot done'; row.className='step-row'; }
+    else if (i === step) { dot.className='step-dot active'; row.className='step-row active'; }
+    else { dot.className='step-dot'; row.className='step-row'; }
+  });
+}
+
+// ─── Error Helpers ────────────────────────────────────────────────────────────
+function showError(msg) {
+  const el = document.getElementById('errorNotice');
+  document.getElementById('errorMsg').textContent = msg;
+  el.style.display = 'flex';
+}
+function hideError() { document.getElementById('errorNotice').style.display = 'none'; }
+
+// ─── Main Analysis ────────────────────────────────────────────────────────────
+async function runAnalysis() {
+  if (!state.file || !state.apiKey) return;
+  hideError();
+  document.getElementById('analyzeBtn').disabled = true;
+  document.getElementById('analyzeBtn').textContent = '⟳ Analysing…';
+  document.getElementById('instGrid').style.display = 'none';
+  initProgress();
+
+  // Step 0: Read file
+  setProgress(0, 15);
+  let raw;
+  try {
+    raw = await readFile(state.file);
+  } catch(e) {
+    showError('Could not read file. Ensure it is a valid Excel (.xlsx/.xls) or CSV file exported from Primavera P6.');
+    resetBtn(); return;
+  }
+
+  // Step 1: Parse
+  setProgress(1, 35);
+  await delay(250);
+  const schedule = parseSchedule(raw);
+  if (!schedule || schedule.activities.length === 0) {
+    showError('No activities found. Check that column headers match standard P6 export names (Activity ID, Activity Name, Duration, Predecessors, etc.).');
+    resetBtn(); return;
+  }
+
+  // Step 2: Local checks
+  setProgress(2, 52);
+  await delay(200);
+  const findings = runChecks(schedule.activities);
+  const score    = scoreFindings(findings);
+
+  // Step 3: AI narrative
+  setProgress(3, 68);
+  const narrative = await callOpenRouter(schedule, findings, score);
+
+  // Step 4: Render
+  setProgress(4, 92);
+  await delay(150);
+  renderResults(schedule, findings, score, narrative);
+  setProgress(4, 100);
+
+  document.getElementById('inputSection').style.display = 'none';
+  document.getElementById('resultsSection').style.display = 'block';
+}
+
+// ─── File Reading ─────────────────────────────────────────────────────────────
+function readFile(f) {
+  return new Promise((res, rej) => {
+    const ext = f.name.split('.').pop().toLowerCase();
+    const reader = new FileReader();
+    if (ext === 'csv') {
+      reader.onload = e => {
+        const lines = e.target.result.split('\n').filter(l=>l.trim());
+        const data  = lines.map(l => l.split(/[,\t]/).map(c=>c.replace(/^"|"$/g,'').trim()));
+        res(data);
+      };
+      reader.onerror = rej;
+      reader.readAsText(f);
+    } else {
+      reader.onload = e => {
+        try {
+          const wb   = XLSX.read(e.target.result, { type:'binary', cellDates:true });
+          const ws   = wb.Sheets[wb.SheetNames[0]];
+          const data = XLSX.utils.sheet_to_json(ws, { header:1, defval:null, raw:false });
+          res(data);
+        } catch(err) { rej(err); }
+      };
+      reader.onerror = rej;
+      reader.readAsBinaryString(f);
+    }
+  });
+}
+
+// ─── OpenRouter Call ──────────────────────────────────────────────────────────
+async function callOpenRouter(schedule, findings, score) {
+  const acts    = schedule.activities;
+  const crit    = acts.filter(a => a.float !== null && a.float <= 0);
+  const noPred  = acts.filter(a => !a.pred);
+  const noSucc  = acts.filter(a => !a.succ);
+  const longD   = acts.filter(a => a.duration > 60);
+  const ptype   = document.getElementById('projectType').value;
+  const pname   = document.getElementById('projectName').value || 'Unnamed Project';
+  const ddate   = document.getElementById('dataDate').value   || 'Not specified';
+  const std     = document.getElementById('checkStd').value;
+  const model   = document.getElementById('modelSelect').value;
+
+  const summary = {
+    projectName: pname, projectType: ptype, dataDate: ddate, standard: std,
+    totalActivities: acts.length, criticalActivities: crit.length,
+    activitiesNoPredecessor: noPred.length, activitiesNoSuccessor: noSucc.length,
+    activitiesLongDuration: longD.length,
+    overallScore: score + '/100',
+    findingsSummary: findings.map(f => `[${f.type.toUpperCase()}] ${f.title}: ${f.desc}`).join('\n'),
+    sampleActivities: acts.slice(0, 60).map(a =>
+      `${a.id} | ${a.name} | Dur:${a.duration}d | Float:${a.float??'N/A'} | Pred:${a.pred||'none'} | Succ:${a.succ||'none'} | ${a.constraint||''} | ${a.pct!==null?a.pct+'% complete':''}`
+    ).join('\n'),
+  };
+
+  try {
+    const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + state.apiKey,
+        'HTTP-Referer': 'https://scheduleiq.local',
+        'X-Title': 'ScheduleIQ P6 Audit',
+      },
+      body: JSON.stringify({
+        model: model,
+        max_tokens: 900,
+        messages: [
+          {
+            role: 'system',
+            content: `You are a senior Primavera P6 schedule analyst with 20+ years in oil & gas EPC project controls. You assess schedules against DCMA 14-Point, AACE, and industry standards. Write a concise professional Schedule QA Narrative in exactly 4 sections:\n\n1) EXECUTIVE SUMMARY (2-3 sentences on overall schedule health and the score meaning)\n2) KEY RISKS & FINDINGS (top 3-4 issues that need urgent attention, with analytical insight beyond just restating the data)\n3) POSITIVE OBSERVATIONS (2-3 things done well or that indicate good practice)\n4) RECOMMENDED ACTIONS (numbered list of top 5 prioritised corrective actions)\n\nUse professional planning language. Be direct and specific. Total output under 550 words.`
+          },
+          {
+            role: 'user',
+            content: 'Produce the Schedule QA Narrative for this project:\n\n' + JSON.stringify(summary, null, 2)
+          }
+        ]
+      })
+    });
+
+    const data = await resp.json();
+    if (data.error) return `AI narrative unavailable: ${data.error.message || 'API error'}.\n\nPlease review the audit findings above.`;
+    return data.choices?.[0]?.message?.content || 'AI narrative unavailable.';
+  } catch(e) {
+    return 'AI narrative could not be generated (network error). The audit findings above are still valid and actionable.';
+  }
+}
+
+// ─── Render Results ───────────────────────────────────────────────────────────
+function renderResults(schedule, findings, score, narrative) {
+  const acts   = schedule.activities;
+  const crit   = acts.filter(a => a.float !== null && a.float <= 0);
+  const near   = acts.filter(a => a.float !== null && a.float > 0 && a.float <= 5);
+  const avgDur = acts.length ? Math.round(acts.reduce((s,a)=>s+a.duration,0)/acts.length) : 0;
+  const pname  = document.getElementById('projectName').value || 'Uploaded Schedule';
+
+  const scoreColor = score>=80?'var(--ok)':score>=60?'var(--warn)':'var(--err)';
+  const scoreBg    = score>=80?'var(--ok-bg)':score>=60?'var(--warn-bg)':'var(--err-bg)';
+  const scoreLabel = score>=80?'GOOD':score>=60?'FAIR':'POOR';
+
+  const kpis = [
+    { val: acts.length, label:'Total Activities',       color:'var(--navy)' },
+    { val: crit.length, label:'Critical Activities',    color:'var(--err)'  },
+    { val: near.length, label:'Near-Critical (≤5d)',    color:'var(--warn)' },
+    { val: avgDur+'d',  label:'Avg Activity Duration',  color:'var(--info)' },
+  ];
+
+  const findingIcons = { ok:'✅', warn:'⚠️', err:'🔴', info:'ℹ️' };
+
+  const actRows = acts.slice(0,200).map(a => {
+    const isCrit = a.float!==null && a.float<=0;
+    const isNear = a.float!==null && a.float>0 && a.float<=5;
+    const ftag = a.float!==null
+      ? `<span class="tag ${isCrit?'tag-crit':isNear?'tag-near':'tag-ok'}">${a.float}d</span>`
+      : '—';
+    return `<tr>
+      <td><span style="font-family:'Source Code Pro',monospace;font-size:11px">${esc(a.id)}</span></td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis" title="${esc(a.name)}">${esc(a.name)}</td>
+      <td>${a.duration>0?a.duration+'d':'—'}</td>
+      <td style="font-size:11px">${esc(a.start)||'—'}</td>
+      <td style="font-size:11px">${esc(a.finish)||'—'}</td>
+      <td>${ftag}</td>
+      <td style="font-size:11px">${esc(a.constraint)||'—'}</td>
+      <td style="font-size:11px">${esc(a.status)||(a.pct!==null?a.pct+'%':'—')}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('resultsSection').innerHTML = `
+    <!-- Results Header -->
+    <div class="results-header">
+      <div>
+        <div class="results-title">Schedule QA Report</div>
+        <div class="results-meta">${esc(pname)} · ${acts.length} activities · ${new Date().toLocaleDateString()}</div>
+      </div>
+      <div class="score-badge" style="border-color:${scoreColor};background:${scoreBg}">
+        <div class="score-num" style="color:${scoreColor}">${score}</div>
+        <div class="score-label" style="color:${scoreColor}">${scoreLabel}</div>
+      </div>
+    </div>
+
+    <!-- KPI Strip -->
+    <div class="kpi-strip">
+      ${kpis.map(k=>`
+        <div class="kpi-card" style="border-top-color:${k.color}">
+          <div class="kpi-val" style="color:${k.color}">${k.val}</div>
+          <div class="kpi-label">${k.label}</div>
+        </div>`).join('')}
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('audit',this)">🔍 Audit Findings</div>
+      <div class="tab" onclick="switchTab('narrative',this)">📝 AI Narrative</div>
+      <div class="tab" onclick="switchTab('activities',this)">📋 Activities</div>
+    </div>
+
+    <!-- Audit Tab -->
+    <div id="tab-audit" class="tab-panel">
+      <div class="section-head">🔍 Quality Findings (${findings.length})</div>
+      <div class="findings-list">
+        ${findings.map(f=>`
+          <div class="finding ${f.type}">
+            <div class="finding-icon">${findingIcons[f.type]||'•'}</div>
+            <div>
+              <div class="finding-title">${esc(f.title)}</div>
+              <div class="finding-desc">${esc(f.desc)}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Narrative Tab -->
+    <div id="tab-narrative" class="tab-panel" style="display:none">
+      <div class="section-head">
+        <span>📝 AI Planning Narrative</span>
+        <button class="btn-sm" onclick="copyNarrative()">Copy Text</button>
+      </div>
+      <div class="narrative-box" id="narrativeBox">${esc(narrative)}</div>
+    </div>
+
+    <!-- Activities Tab -->
+    <div id="tab-activities" class="tab-panel" style="display:none">
+      <div class="section-head">📋 Activity Register (${Math.min(acts.length,200)} shown${acts.length>200?' of '+acts.length:''})</div>
+      <div class="table-wrap">
+        <table class="act-table">
+          <thead><tr>
+            <th>ID</th><th>Name</th><th>Duration</th><th>Start</th><th>Finish</th>
+            <th>Float</th><th>Constraint</th><th>Status</th>
+          </tr></thead>
+          <tbody>${actRows}</tbody>
+        </table>
+      </div>
+      ${acts.length>200?`<p style="text-align:center;color:var(--text-light);font-size:12px;margin-top:10px">Showing first 200 of ${acts.length} activities</p>`:''}
+    </div>
+
+    <!-- Reset -->
+    <div class="reset-row">
+      <button class="btn-sm" onclick="resetTool()">← Analyse Another Schedule</button>
+    </div>
+  `;
+}
+
+// ─── Tab Switch ───────────────────────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.style.display='none');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-'+name).style.display = 'block';
+  el.classList.add('active');
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function esc(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function delay(ms) { return new Promise(r=>setTimeout(r,ms)); }
+function resetBtn() {
+  const btn = document.getElementById('analyzeBtn');
+  btn.disabled = false;
+  btn.textContent = '⚡ Run Schedule Intelligence Audit';
+  document.getElementById('progressWrap').style.display = 'none';
+}
+function resetTool() {
+  state.file = null;
+  document.getElementById('inputSection').style.display = 'block';
+  document.getElementById('resultsSection').style.display = 'none';
+  document.getElementById('resultsSection').innerHTML = '';
+  document.getElementById('instGrid').style.display = 'grid';
+  document.getElementById('progressWrap').style.display = 'none';
+  const zone = document.getElementById('uploadZone');
+  zone.classList.remove('has-file','drag');
+  document.getElementById('uploadIcon').textContent = '📁';
+  document.getElementById('uploadTitle').textContent = 'Drop your P6 export here';
+  document.getElementById('uploadHint').textContent = 'or tap to browse';
+  document.getElementById('fileName').textContent = '';
+  document.getElementById('fileInput').value = '';
+  resetBtn();
+  hideError();
+}
+function copyNarrative() {
+  const txt = document.getElementById('narrativeBox')?.innerText || '';
+  navigator.clipboard.writeText(txt).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = 'Copy Text', 2000);
+  });
+}
+</script>
+</body>
+</html>
