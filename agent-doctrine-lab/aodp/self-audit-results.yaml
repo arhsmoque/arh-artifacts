@@ -1,0 +1,52 @@
+# AODP Self-Audit Results
+# Generated: 2026-06-08
+# Command: uv run --script audit/aodp_audit.py --type contract --target . --depth full --format yaml
+
+protocol: AODP
+version: "1.8"
+ok: true
+level: 2
+level_name: Platform
+target: aodp
+target_path: D:\ARH\00_charter\aodp
+adapter: contract
+score: 12/13
+applicable_count: 13
+na_count: 1
+waivers_applied: []
+duration_ms: 484
+summary: >
+  PASS — 'aodp' is AODP Level 2 (Platform).
+  12/13 applicable checks passed; 1 advisory; 1 N/A.
+
+advisories:
+  - name: directory_naming_kebab_case
+    section: "§3"
+    detail: "non-kebab-case directories: ['ARH Design Pipeline Protocol', 'ARH Universal Frontend Design', 'ARH Various Protocols References']"
+    remediation: "Rename directories to kebab-case noun phrases — see AODP_CORE.md §3"
+    blocks_level: 3
+    note: >
+      These directories predate AODP kebab-case convention.
+      Renaming them requires updating all internal references and
+      external bookmarks. Deferred to a formal migration (see JOURNAL.md).
+
+na:
+  - name: result_envelope_present
+    section: "§4"
+    detail: >
+      contract/docs surface — §4/§5/§7 runtime checks N/A:
+      this artifact DEFINES envelopes/policies;
+      the implementing binary EMITS them.
+      Audit that binary as its surface.
+
+changes_from_prior_run:
+  - Fixed AGENTS.md failure-mode coverage (added Failure Modes section)
+  - Fixed aodp_audit.py silent error swallow (line 128-131: OSError now warns to stderr)
+  - Fixed aodp_base_audit.py hardcoded identity false positives:
+    - Added security taxonomy terms to fp_filter (Injection, Execution, Traversal, etc.)
+    - Added "Extra" to fp_filter for sample data in templates
+    - Fixed self-referential regex match on catch-block comment
+  - Fixed dangling links in SKILL_ADAPTER.md and skills-reference.md
+  - Added TRADEOFFS.md documenting optimize/preserve/sacrifice
+  - Added §0.1 Non-Goals and §1.1 Protocol Self-Finites to AODP_CORE.md
+  - Updated AODP_CONTEXT.md paths to canonical D:\ARH\00_charter\aodp\
